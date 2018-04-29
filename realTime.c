@@ -48,68 +48,76 @@ void realTime(Exec * execs, int n) {
 			}
 		}
   }
-  //   // pai de todos
-  //   // comandará o tempo para cada programa
-  // if(pid != 0){
-  //   for(i = 0; i< n; i++){
-  //     	kill(pids[i], SIGSTOP);
-  //   }
-  //
-  //   while(1){
-  //     // pegando o tempo real
-  //     sleep(1);
-  //     time_t initialTime = time(0); // Get the system time
-  //     struct tm * timeinfo;
-  //
-  //     timeinfo = localtime ( &initialTime );
-  //
-  //     int nowSeconds = timeinfo->tm_sec;
-  //   // REMOVE FOR TEST  if(nowSeconds == 0){
-  //     //  while(1){
-  //         // after the first run, it will always start at second 0 of every minute
-  //         int seconds = 0;
-  //
-  //         for(i = 0; i < n; i++){
-  //           sleep(aux->initTime - seconds);
-  //
-  //           seconds = aux->initTime;
-  //           kill(pids[i], SIGCONT);
-  //
-  //           sleep(aux->duration);
-  //
-  //
-  //           seconds += aux->duration;
-  //           kill(pids[i], SIGSTOP);
-  //           aux = aux->next;
-  //
-  //           sleep(60 - seconds);
-  //
-  //         }
-  //     //  }
-  //   //  }
-  //
-  //   }
-  //
-  // }
-  //
-  //   // filhos
-  //   // executarão os programas
-  // if(pid == 0){
-  //
-	// 	int auxPid = getpid();
-	// 	for(i = 0; i < n; i++){
-	// 		if (auxPid == pids[i]){
-  //
-  //       char *args[]={aux->name,NULL};
-	// 			execv(args[0], args);
-	// 		}
-  //     aux = aux->next;
-	// 	}
-	// }
+    // pai de todos
+    // comandará o tempo para cada programa
+  if(pid != 0){
+    for(i = 0; i< n; i++){
+      	kill(pids[i], SIGSTOP);
+        printf("%d parado\n", pids[i]);
+    }
+
+    // pegando o tempo real
+    time_t initialTime = time(0); // Get the system time
+    struct tm * timeinfo;
+
+    timeinfo = localtime ( &initialTime );
+
+    int nowSeconds = timeinfo->tm_sec;
+      // to start at second 0 of real time
+    if(nowSeconds != 0){
+        printf("Starts RR\n");
+        sleep(60 - nowSeconds);
+        printf("Stops RR\n");
+    }
+
+
+    while(1){
+      // after the first run, it will always start at second 0 of every minute
+      int seconds = 0;
+
+      for(i = 0; i < n; i++){
+        printf("Starts RR\n");
+        sleep(aux->initTime - seconds);
+        printf("Stops RR\n");
+
+        seconds = aux->initTime;
+        kill(pids[i], SIGCONT);
+
+        sleep(aux->duration);
+
+        seconds += aux->duration;
+        kill(pids[i], SIGSTOP);
+        aux = aux->next;
+
+
+        printf("Starts RR\n");
+        sleep(60 - seconds);
+        printf("Stops RR\n");
+
+      }
+    }
+
+
+  }
+
+    // filhos
+    // executarão os programas
+  if(pid == 0){
+
+		int auxPid = getpid();
+		for(i = 0; i < n; i++){
+			if (auxPid == pids[i]){
+
+        char *args[]={aux->name,NULL};
+				execv(args[0], args);
+			}
+      aux = aux->next;
+		}
+	}
 
 
   shmdt(pids);
-  
+
 
 }
 
@@ -157,13 +165,6 @@ int main () {
 
   realTime(realTimeExec, i);
 
-  while(realTimeExec->next != NULL){
-    Exec *aux = realTimeExec;
-    realTimeExec = realTimeExec->next;
-
-    //free(aux->name);
-  //  free(aux);
-  }
   free(realTimeExec);
 
   return 0;
