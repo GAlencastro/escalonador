@@ -19,6 +19,65 @@ struct exec {
 };
 typedef struct exec Exec;
 
+void roundRobin(Exec * execs, int n) {
+
+  Exec * aux = execs;
+    // preparando o vetor de processos
+  int i;
+  int pid = 1;
+  int *pids;
+  int segmento;
+
+  segmento = shmget(IPC_PRIVATE, sizeof(int), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+
+  pids = (int *) shmat(segmento, 0, 0);
+
+  for(i = 0; i < n; i++) {
+    if(pid != 0){
+			pid = fork();
+			if(pid == 0){
+				break;
+			}
+			if(pid != 0){
+				pids[i] = pid;
+			}
+		}
+  }
+    // pai de todos
+    // comandará o tempo para cada programa
+  if(pid != 0){
+    for(i = 0; i< n; i++){
+        kill(pids[i], SIGSTOP);
+    }
+    while(1){
+			for(i = 0; i < n; i++){
+
+					kill(pids[i], SIGCONT);
+					usleep(500000);
+					kill(pids[i], SIGSTOP);
+
+			}
+    }
+  }
+
+    // filhos
+    // executarão os programas
+  if(pid == 0){
+
+		int auxPid = getpid();
+		for(i = 0; i < n; i++){
+			if (auxPid == pids[i]){
+
+        char *args[]={aux->name,NULL};
+				execv(args[0], args);
+			}
+      aux = aux->next;
+		}
+	}
+
+    shmdt(pids);
+}
+
 void realTime(Exec * execs, int n) {
 
   Exec * aux = execs;
@@ -56,6 +115,23 @@ void realTime(Exec * execs, int n) {
         printf("%d parado\n", pids[i]);
     }
 
+      //
+      //  --- FORK FOR ROUND ROBIN
+      //
+    int pidRR = fork();
+
+    if(pidRR == 0){
+      while(1){
+        sleep(1);
+        printf("QUERO ATENCAO - %d\n", getpid());
+      }
+      // roundRobin(execs, n);
+      // exit(0);
+    }
+    else{
+      printf("PROCESSO PAI (RT): -- %d -- Parar filho: - %d\n", getpid(), pidRR);
+      kill(pidRR, SIGSTOP);
+    }
     // pegando o tempo real
     time_t initialTime = time(0); // Get the system time
     struct tm * timeinfo;
@@ -65,36 +141,47 @@ void realTime(Exec * execs, int n) {
     int nowSeconds = timeinfo->tm_sec;
       // to start at second 0 of real time
     if(nowSeconds != 0){
-        printf("Starts RR\n");
+        printf("Starts RR - %d for %d seconds\n", getpid(), 60 - nowSeconds);
+        kill(pidRR, SIGCONT);
         sleep(60 - nowSeconds);
-        printf("Stops RR\n");
+        kill(pidRR, SIGSTOP);
+        printf("Stops RR - %d\n", getpid());
     }
-
 
     while(1){
       // after the first run, it will always start at second 0 of every minute
       int seconds = 0;
 
       for(i = 0; i < n; i++){
-        printf("Starts RR\n");
+
+          // starts RoundRobin
+        printf("Starts RR for %d seconds\n", aux->initTime - seconds);
+        kill(pidRR, SIGCONT);
         sleep(aux->initTime - seconds);
+          // stops roundRobin
+        kill(pidRR, SIGSTOP);
         printf("Stops RR\n");
 
         seconds = aux->initTime;
+          // starts the program
         kill(pids[i], SIGCONT);
 
         sleep(aux->duration);
-
         seconds += aux->duration;
+
         kill(pids[i], SIGSTOP);
+          // stops the program
         aux = aux->next;
-
-
-        printf("Starts RR\n");
-        sleep(60 - seconds);
-        printf("Stops RR\n");
-
       }
+
+      printf("Starts RR  for %d seconds\n", 60 - seconds);
+
+        //starts roundRobin
+      kill(pidRR, SIGCONT);
+      sleep(60 - seconds);
+        //stops roundRobin
+      kill(pidRR, SIGSTOP);
+      printf("Stops RR\n");
     }
 
 

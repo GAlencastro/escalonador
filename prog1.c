@@ -6,7 +6,7 @@ int main(){
   int i = 1;
   for(;;){
     usleep(1000000);
-    printf("Programa 1 - %d\n", i);
+    printf("Programa 1 - %d -- PID: %d\n", i, getpid());
     i++;
   }
 
